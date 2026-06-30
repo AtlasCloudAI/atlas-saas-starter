@@ -154,7 +154,7 @@ function StudioInner() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={resultUrl} alt="result" className="w-full max-w-xl rounded-xl border" />
             )}
-            <a href={resultUrl} download className="text-sm text-brand underline">Download</a>
+            <a href={`/api/download?url=${encodeURIComponent(resultUrl)}`} className="inline-block rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5">⬇ Download</a>
           </div>
         )}
       </section>

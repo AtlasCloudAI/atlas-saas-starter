@@ -68,6 +68,14 @@ export default function Dashboard() {
                   </div>
                 )}
                 <p className="mt-2 line-clamp-2 text-xs text-neutral-500">{c.prompt}</p>
+                {c.status === 'completed' && c.outputs?.[0] && (
+                  <a
+                    href={`/api/download?url=${encodeURIComponent(c.outputs[0])}`}
+                    className="mt-2 inline-block text-xs font-medium text-brand underline"
+                  >
+                    ⬇ Download
+                  </a>
+                )}
               </div>
             );
           })}
