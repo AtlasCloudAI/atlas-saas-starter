@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+.env
+.env*.local
+*.log
+.DS_Store
+prisma/dev.db
+prisma/dev.db-journal
+next-env.d.ts
+.vercel
+
+# internal docs — NOT part of the public template
+RESEARCH.md
+TEAM_SYNC.md
