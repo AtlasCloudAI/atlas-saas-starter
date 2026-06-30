@@ -152,7 +152,7 @@ function StudioInner() {
               <video src={resultUrl} controls autoPlay loop className="w-full max-w-xl rounded-xl border" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={resultUrl} alt="result" className="w-full max-w-xl rounded-xl border" />
+              <img src={resultUrl} alt="result" referrerPolicy="no-referrer" className="w-full max-w-xl rounded-xl border" />
             )}
             <a href={`/api/download?url=${encodeURIComponent(resultUrl)}`} className="inline-block rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5">⬇ Download</a>
           </div>

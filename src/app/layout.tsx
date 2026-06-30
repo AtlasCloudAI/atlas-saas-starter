@@ -4,9 +4,11 @@ import Providers from './providers';
 import { Navbar } from '@/components/Navbar';
 
 export const metadata: Metadata = {
-  title: 'Atlas Video Studio — AI video generator',
+  title: 'Atlas Media Studio — AI photo & video',
   description:
-    'Generate AI videos from text or images. Open-source SaaS starter powered by Atlas Cloud.',
+    'Generate AI photos and videos from your images. Open-source SaaS starter powered by Atlas Cloud.',
+  // Atlas OSS force-downloads images when a Referer is sent — drop it so <img>/<video> render inline.
+  referrer: 'no-referrer',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

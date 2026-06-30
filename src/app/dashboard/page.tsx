@@ -60,7 +60,7 @@ export default function Dashboard() {
                     <video src={c.outputs[0]} controls loop className="w-full rounded-lg" />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.outputs[0]} alt="" className="w-full rounded-lg" />
+                    <img src={c.outputs[0]} alt="" referrerPolicy="no-referrer" className="w-full rounded-lg" />
                   )
                 ) : (
                   <div className="flex h-40 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-500">
