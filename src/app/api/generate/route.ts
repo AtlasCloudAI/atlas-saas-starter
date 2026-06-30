@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getTemplate } from '@/config/templates';
-import { submitVideo } from '@/lib/atlas';
+import { submitGen } from '@/lib/atlas';
 import { deductCredits, grantCredits } from '@/lib/credits';
 
 export async function POST(req: Request) {
@@ -13,8 +13,7 @@ export async function POST(req: Request) {
   const { templateId, prompt, image } = await req.json().catch(() => ({}));
   const t = getTemplate(templateId);
   if (!t) return NextResponse.json({ error: 'unknown_template' }, { status: 400 });
-  if (t.kind === 'i2v' && !image)
-    return NextResponse.json({ error: 'image_required' }, { status: 400 });
+  if (!image) return NextResponse.json({ error: 'image_required' }, { status: 400 });
 
   const finalPrompt = (prompt?.trim?.() || t.defaultPrompt) as string;
 
@@ -27,15 +26,16 @@ export async function POST(req: Request) {
 
   let res;
   try {
-    res = await submitVideo({
+    res = await submitGen({
+      endpoint: t.endpoint,
       model: t.model,
       prompt: finalPrompt,
-      images: image ? [image] : undefined,
+      image,
+      imageField: t.imageField,
       extra: t.extra,
     });
   } catch (e) {
-    // Refund if Atlas rejected the job outright.
-    await grantCredits(session.user.id, t.cost, 'refund', templateId);
+    await grantCredits(session.user.id, t.cost, 'refund', templateId); // refund on submit failure
     return NextResponse.json({ error: 'atlas_submit_failed', detail: String(e) }, { status: 502 });
   }
 
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       templateId,
       model: t.model,
       prompt: finalPrompt,
-      inputImage: image || null,
+      inputImage: image,
       status: 'processing',
       taskId: res.id,
       getUrl: res.getUrl,

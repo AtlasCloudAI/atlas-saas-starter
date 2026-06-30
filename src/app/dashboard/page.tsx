@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { getTemplate } from '@/config/templates';
 
 interface Creation {
   id: string;
@@ -25,7 +26,6 @@ export default function Dashboard() {
     if (session) load();
   }, [session]);
 
-  // Keep advancing any in-flight jobs.
   useEffect(() => {
     const pending = items.filter((i) => i.status === 'processing' || i.status === 'pending');
     if (pending.length === 0) return;
@@ -40,29 +40,37 @@ export default function Dashboard() {
   if (!session)
     return (
       <button onClick={() => signIn('google')} className="rounded-lg bg-brand px-4 py-2 text-white">
-        Sign in to see your videos
+        Sign in to see your creations
       </button>
     );
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">My videos</h1>
+      <h1 className="mb-6 text-2xl font-bold">My creations</h1>
       {items.length === 0 ? (
-        <p className="text-neutral-500">No videos yet. Head to the studio to make one.</p>
+        <p className="text-neutral-500">Nothing yet. Head to the studio to make something.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((c) => (
-            <div key={c.id} className="rounded-xl border border-neutral-200 bg-white p-3">
-              {c.status === 'completed' && c.outputs?.[0] ? (
-                <video src={c.outputs[0]} controls loop className="w-full rounded-lg" />
-              ) : (
-                <div className="flex h-40 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-500">
-                  {c.status === 'failed' ? 'Failed (refunded)' : 'Generating…'}
-                </div>
-              )}
-              <p className="mt-2 line-clamp-2 text-xs text-neutral-500">{c.prompt}</p>
-            </div>
-          ))}
+          {items.map((c) => {
+            const out = getTemplate(c.templateId)?.output ?? 'image';
+            return (
+              <div key={c.id} className="rounded-xl border border-neutral-200 bg-white p-3">
+                {c.status === 'completed' && c.outputs?.[0] ? (
+                  out === 'video' ? (
+                    <video src={c.outputs[0]} controls loop className="w-full rounded-lg" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.outputs[0]} alt="" className="w-full rounded-lg" />
+                  )
+                ) : (
+                  <div className="flex h-40 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-500">
+                    {c.status === 'failed' ? 'Failed (refunded)' : 'Generating…'}
+                  </div>
+                )}
+                <p className="mt-2 line-clamp-2 text-xs text-neutral-500">{c.prompt}</p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { VIDEO_TEMPLATES } from '@/config/templates';
+import { TEMPLATES } from '@/config/templates';
 
 const STATS: [string, string][] = [
-  ['~$0.01', 'Atlas cost per video'],
-  ['$0.50–$1+', 'what you can charge'],
+  ['~$0.01–0.04', 'Atlas cost per generation'],
+  ['$0.50–1+', 'what you can charge'],
   ['~95%', 'gross margin'],
 ];
 
@@ -12,7 +12,7 @@ export default function Home() {
     <div className="space-y-16">
       <section className="pt-6 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Launch your own AI video SaaS
+          Launch your own AI media SaaS
           <br />
           in an afternoon
         </h1>
@@ -40,11 +40,9 @@ export default function Home() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold">
-          {VIDEO_TEMPLATES.length} ready-to-sell templates
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {VIDEO_TEMPLATES.map((t) => (
+        <h2 className="mb-4 text-xl font-semibold">{TEMPLATES.length} ready-to-sell apps</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {TEMPLATES.map((t) => (
             <Link
               key={t.id}
               href={`/studio?t=${t.id}`}
@@ -54,7 +52,7 @@ export default function Home() {
               <div className="mt-2 font-medium">{t.title}</div>
               <div className="mt-1 text-sm text-neutral-500">{t.description}</div>
               <div className="mt-3 text-xs uppercase tracking-wide text-brand">
-                {t.kind === 'i2v' ? 'image → video' : 'text → video'} · {t.cost} credits
+                {t.output === 'video' ? 'photo → video' : 'photo → image'} · {t.cost} credits
               </div>
             </Link>
           ))}

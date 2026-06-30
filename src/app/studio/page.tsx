@@ -3,19 +3,19 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { VIDEO_TEMPLATES, getTemplate } from '@/config/templates';
+import { TEMPLATES, getTemplate } from '@/config/templates';
 
 function StudioInner() {
   const { data: session } = useSession();
   const sp = useSearchParams();
-  const [selected, setSelected] = useState(sp.get('t') || VIDEO_TEMPLATES[0].id);
-  const t = getTemplate(selected) || VIDEO_TEMPLATES[0];
+  const [selected, setSelected] = useState(sp.get('t') || TEMPLATES[0].id);
+  const t = getTemplate(selected) || TEMPLATES[0];
 
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -30,7 +30,7 @@ function StudioInner() {
   }
 
   function reset() {
-    setVideoUrl(null);
+    setResultUrl(null);
     setErr(null);
     setStatus(null);
     if (timer.current) clearInterval(timer.current);
@@ -39,7 +39,7 @@ function StudioInner() {
   async function generate() {
     reset();
     if (!session) return signIn('google');
-    if (t.kind === 'i2v' && !image) return setErr('Please upload an image for this template.');
+    if (!image) return setErr('Please upload an image first.');
 
     setBusy(true);
     setStatus('Submitting…');
@@ -60,7 +60,7 @@ function StudioInner() {
       return;
     }
     window.dispatchEvent(new Event('atlas:credits'));
-    setStatus('Generating your video… (~30–90s)');
+    setStatus(t.output === 'video' ? 'Generating video… (~30–60s)' : 'Generating… (~10s)');
     timer.current = setInterval(async () => {
       try {
         const r = await fetch(`/api/creations/${j.id}`);
@@ -70,7 +70,7 @@ function StudioInner() {
           setBusy(false);
           setStatus(null);
           const out = Array.isArray(c.outputs) ? c.outputs : [];
-          setVideoUrl(out[0] || null);
+          setResultUrl(out[0] || null);
         } else if (c.status === 'failed') {
           if (timer.current) clearInterval(timer.current);
           setBusy(false);
@@ -81,61 +81,46 @@ function StudioInner() {
       } catch {
         /* keep polling */
       }
-    }, 4000);
+    }, t.output === 'video' ? 4000 : 3000);
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-      {/* template picker */}
       <aside className="space-y-2">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Templates
-        </h2>
-        {VIDEO_TEMPLATES.map((tpl) => (
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">Apps</h2>
+        {TEMPLATES.map((tpl) => (
           <button
             key={tpl.id}
-            onClick={() => {
-              setSelected(tpl.id);
-              reset();
-              setImage(null);
-              setPrompt('');
-            }}
+            onClick={() => { setSelected(tpl.id); reset(); setImage(null); setPrompt(''); }}
             className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${
-              tpl.id === selected
-                ? 'border-brand bg-brand/5'
-                : 'border-neutral-200 bg-white hover:border-neutral-300'
+              tpl.id === selected ? 'border-brand bg-brand/5' : 'border-neutral-200 bg-white hover:border-neutral-300'
             }`}
           >
             <span className="text-xl">{tpl.emoji}</span>
             <span>
               <span className="block text-sm font-medium">{tpl.title}</span>
               <span className="block text-xs text-neutral-500">
-                {tpl.kind === 'i2v' ? 'image → video' : 'text → video'} · {tpl.cost} cr
+                {tpl.output === 'video' ? 'photo → video' : 'photo → image'} · {tpl.cost} cr
               </span>
             </span>
           </button>
         ))}
       </aside>
 
-      {/* workspace */}
       <section className="space-y-5">
         <div>
-          <h1 className="text-2xl font-bold">
-            {t.emoji} {t.title}
-          </h1>
+          <h1 className="text-2xl font-bold">{t.emoji} {t.title}</h1>
           <p className="text-neutral-600">{t.description}</p>
         </div>
 
-        {t.kind === 'i2v' && (
-          <div>
-            <label className="mb-1 block text-sm font-medium">Source image</label>
-            <input type="file" accept="image/*" onChange={onFile} />
-            {image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={image} alt="input" className="mt-3 max-h-48 rounded-lg border" />
-            )}
-          </div>
-        )}
+        <div>
+          <label className="mb-1 block text-sm font-medium">Upload your photo</label>
+          <input type="file" accept="image/*" onChange={onFile} />
+          {image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="input" className="mt-3 max-h-48 rounded-lg border" />
+          )}
+        </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium">
@@ -161,12 +146,15 @@ function StudioInner() {
         {status && <p className="text-sm text-neutral-600">{status}</p>}
         {err && <p className="text-sm text-red-600">{err}</p>}
 
-        {videoUrl && (
+        {resultUrl && (
           <div className="space-y-2">
-            <video src={videoUrl} controls autoPlay loop className="w-full max-w-xl rounded-xl border" />
-            <a href={videoUrl} download className="text-sm text-brand underline">
-              Download video
-            </a>
+            {t.output === 'video' ? (
+              <video src={resultUrl} controls autoPlay loop className="w-full max-w-xl rounded-xl border" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={resultUrl} alt="result" className="w-full max-w-xl rounded-xl border" />
+            )}
+            <a href={resultUrl} download className="text-sm text-brand underline">Download</a>
           </div>
         )}
       </section>

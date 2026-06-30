@@ -1,142 +1,109 @@
 /**
- * Video templates for the studio. Each template binds a REAL Atlas Cloud
- * video model id to a creative preset. Swap models / add templates freely —
- * browse the full catalog at https://api.atlascloud.ai/api/v1/models
+ * The 5 launch scenarios. Each binds a REAL Atlas Cloud model (verified
+ * working 2026-06-30) to a creative preset. All 5 take ONE uploaded image.
  *
- * `cost` is in your in-app credits (see config/pricing.ts). Atlas's actual
- * per-generation cost is a few cents, so every template is high-margin.
+ *   image-edit  → generateImage, input under `images` (seedream .../edit)
+ *   i2v         → generateVideo, input under `image`  (seedance i2v)
+ *
+ * `cost` is in your in-app credits (config/pricing.ts). Atlas's real per-run
+ * cost is a few cents, so every scenario is high-margin.
  */
-export interface VideoTemplate {
+export interface Template {
   id: string;
   title: string;
   description: string;
   emoji: string;
-  /** t2v = text only; i2v = needs an input image (used as first frame) */
-  kind: 't2v' | 'i2v';
-  /** real Atlas model id passed straight to generateVideo */
+  /** what the user gets back (drives UI: <img> vs <video>) */
+  output: 'image' | 'video';
+  endpoint: 'generateImage' | 'generateVideo';
   model: string;
+  /** payload key for the uploaded image (differs per model) */
+  imageField: 'image' | 'images';
   /** credits charged per generation */
   cost: number;
   promptPlaceholder: string;
   defaultPrompt: string;
-  /** extra model params merged into the API payload */
   extra?: Record<string, unknown>;
-  /** preview clip (Atlas CDN) if available */
-  sampleVideo?: string;
+  /** real Atlas per-run cost, for the README money math */
+  atlasCost: string;
 }
 
-const V = { duration: 5, resolution: '720p', seed: -1 };
-
-export const VIDEO_TEMPLATES: VideoTemplate[] = [
-  // ── text-to-video ──
+export const TEMPLATES: Template[] = [
   {
-    id: 'anime-mv',
-    title: 'Anime Music Video',
-    description: 'Turn a one-line idea into a vivid anime clip.',
-    emoji: '🎬',
-    kind: 't2v',
-    model: 'bytedance/seedance-v1-pro-fast/text-to-video',
-    cost: 5,
-    promptPlaceholder: 'A girl with silver hair running through neon Tokyo at night, rain, cinematic',
-    defaultPrompt:
-      'A girl with silver hair running through neon-lit Tokyo streets at night, light rain, reflections, dynamic camera, anime style, cinematic',
-    extra: { ...V },
-    sampleVideo: 'https://static.atlascloud.ai/uploads/models/3d151d2c-7325-446f-a394-a2befa620542.mp4',
-  },
-  {
-    id: 'cinematic-trailer',
-    title: 'Cinematic Trailer',
-    description: 'Hollywood-grade establishing shots from a prompt.',
-    emoji: '🍿',
-    kind: 't2v',
-    model: 'bytedance/seedance-v1.5-pro/text-to-video-fast',
+    id: 'headshot',
+    title: 'AI Professional Headshot',
+    description: 'Turn a selfie into a studio-grade corporate headshot.',
+    emoji: '👔',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'bytedance/seedream-v4.5/edit',
+    imageField: 'images',
     cost: 8,
-    promptPlaceholder: 'Aerial shot over a futuristic desert city at golden hour, sandstorm approaching',
+    promptPlaceholder: 'navy business suit, soft window light, friendly confident smile',
     defaultPrompt:
-      'Sweeping aerial shot over a futuristic desert city at golden hour, a sandstorm approaching on the horizon, epic scale, volumetric light, cinematic color grade',
-    extra: { ...V },
+      'Transform this person into a professional corporate headshot: tasteful business attire, clean neutral studio background, soft professional lighting, confident friendly expression, sharp focus, photorealistic.',
+    atlasCost: '$0.036',
   },
   {
-    id: 'product-spotlight',
-    title: 'Product Spotlight',
-    description: 'Slick rotating hero shot for any product.',
-    emoji: '✨',
-    kind: 't2v',
-    model: 'pixverse/v6/text-to-video',
-    cost: 10,
-    promptPlaceholder: 'A sleek matte-black smartwatch rotating on a glossy podium, studio lighting',
+    id: 'product-photo',
+    title: 'AI Product Photo',
+    description: 'Drop any product into a clean premium studio scene.',
+    emoji: '📦',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'bytedance/seedream-v4.5/edit',
+    imageField: 'images',
+    cost: 8,
+    promptPlaceholder: 'on a marble podium, soft studio shadows, minimal beige backdrop',
     defaultPrompt:
-      'A sleek matte-black smartwatch slowly rotating on a glossy reflective podium, soft studio lighting, shallow depth of field, premium commercial look',
-    extra: { duration: 5, resolution: '720p' },
+      'Place this product in a clean professional e-commerce studio scene: soft realistic shadows, premium minimal backdrop, even commercial lighting, crisp focus, hero product shot.',
+    atlasCost: '$0.036',
   },
-
-  // ── image-to-video ──
+  {
+    id: 'virtual-staging',
+    title: 'AI Virtual Staging',
+    description: 'Furnish an empty room for a real-estate listing.',
+    emoji: '🛋️',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'bytedance/seedream-v4.5/edit',
+    imageField: 'images',
+    cost: 8,
+    promptPlaceholder: 'modern Scandinavian living room, warm and inviting',
+    defaultPrompt:
+      'Furnish this empty room with tasteful modern furniture and decor: warm inviting staging, realistic interior design, natural lighting, photorealistic, real-estate listing quality. Keep the room architecture and windows unchanged.',
+    atlasCost: '$0.036',
+  },
+  {
+    id: 'wedding',
+    title: 'AI Wedding Photoshoot',
+    description: 'Turn a photo into a dreamy wedding shoot.',
+    emoji: '💍',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'bytedance/seedream-v4.5/edit',
+    imageField: 'images',
+    cost: 8,
+    promptPlaceholder: 'elegant white gown, golden-hour garden, cinematic bokeh',
+    defaultPrompt:
+      'Transform this into an elegant wedding photoshoot: formal wedding attire, romantic scenic background, soft cinematic golden-hour lighting, professional photography, photorealistic, keep the faces faithful.',
+    atlasCost: '$0.036',
+  },
   {
     id: 'photo-to-life',
-    title: 'Photo to Life',
-    description: 'Animate any photo into a living moment.',
+    title: 'Photo to Life (animate)',
+    description: 'Bring any photo to life as a short video.',
     emoji: '🪄',
-    kind: 'i2v',
+    output: 'video',
+    endpoint: 'generateVideo',
     model: 'bytedance/seedance-v1-pro-fast/image-to-video',
+    imageField: 'image',
     cost: 5,
-    promptPlaceholder: 'gentle natural motion, hair and clothes moving in the breeze',
+    promptPlaceholder: 'gentle smile, hair moving in the breeze, slow cinematic push-in',
     defaultPrompt:
-      'Use the provided image as the first frame: subtle natural motion, hair and clothing moving gently in the breeze, soft ambient light shifting, eyes blinking naturally, stable cinematic shot',
-    extra: { ...V, camera_fixed: false },
-    sampleVideo: 'https://static.atlascloud.ai/uploads/models/8ec476e6-a083-4ec0-b97f-fab5ab84f157.mp4',
-  },
-  {
-    id: 'product-360',
-    title: 'Product 360 Spin',
-    description: 'Spin a product photo into a 360° showcase.',
-    emoji: '🔄',
-    kind: 'i2v',
-    model: 'alibaba/wan-2.6/image-to-video-flash',
-    cost: 8,
-    promptPlaceholder: 'the product rotates smoothly 360 degrees on a turntable',
-    defaultPrompt:
-      'Use the provided image as the first frame: the product rotates smoothly a full 360 degrees on a turntable, clean studio background, consistent lighting, premium commercial presentation',
-    extra: { ...V },
-  },
-  {
-    id: 'living-portrait',
-    title: 'Living Portrait',
-    description: 'Bring a portrait to life with subtle expression.',
-    emoji: '🖼️',
-    kind: 'i2v',
-    model: 'bytedance/seedance-v1.5-pro/image-to-video-fast',
-    cost: 8,
-    promptPlaceholder: 'soft smile, a slow head turn toward the camera',
-    defaultPrompt:
-      'Use the provided image as the first frame: the person gives a soft natural smile and slowly turns their head toward the camera, gentle eye movement, realistic and stable, cinematic portrait lighting',
-    extra: { ...V, camera_fixed: true },
-  },
-  {
-    id: 'squish-it',
-    title: 'Squish It',
-    description: 'The viral squish effect on any subject.',
-    emoji: '🫧',
-    kind: 'i2v',
-    model: 'atlascloud/wan-2.2-turbo/image-to-video',
-    cost: 8,
-    promptPlaceholder: 'the subject gets playfully squished and bounces back, fun and bouncy',
-    defaultPrompt:
-      'Use the provided image as the first frame: the subject is playfully squished and stretched like soft jelly, then bounces back to normal, fun bouncy motion, smooth and satisfying',
-    extra: { ...V },
-  },
-  {
-    id: 'dynamic-pan',
-    title: 'Dynamic Pan',
-    description: 'Add a dramatic cinematic camera move to a still.',
-    emoji: '🎥',
-    kind: 'i2v',
-    model: 'pixverse/v6/image-to-video',
-    cost: 10,
-    promptPlaceholder: 'slow dramatic dolly-in with parallax, cinematic atmosphere',
-    defaultPrompt:
-      'Use the provided image as the first frame: a slow dramatic dolly-in with subtle parallax, atmospheric particles drifting, cinematic depth and mood',
-    extra: { duration: 5, resolution: '720p' },
+      'The subject comes to life with subtle natural motion: gentle smile, soft head movement, hair and clothing moving slightly, slow cinematic camera push-in, stable and realistic.',
+    atlasCost: '$0.009',
   },
 ];
 
-export const getTemplate = (id: string) => VIDEO_TEMPLATES.find((t) => t.id === id);
+export const getTemplate = (id: string) => TEMPLATES.find((t) => t.id === id);
