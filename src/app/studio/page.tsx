@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { TEMPLATES, getTemplate } from '@/config/templates';
+import { UploadCloud, Sparkles, Download, Loader2, AlertCircle } from 'lucide-react';
 
 function StudioInner() {
   const { data: session } = useSession();
@@ -13,6 +14,7 @@ function StudioInner() {
 
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -21,26 +23,29 @@ function StudioInner() {
 
   useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+  function handleFile(f?: File) {
     if (!f) return;
     const r = new FileReader();
     r.onload = () => setImage(r.result as string);
     r.readAsDataURL(f);
   }
-
   function reset() {
     setResultUrl(null);
     setErr(null);
     setStatus(null);
     if (timer.current) clearInterval(timer.current);
   }
+  function pick(id: string) {
+    setSelected(id);
+    reset();
+    setImage(null);
+    setPrompt('');
+  }
 
   async function generate() {
     reset();
     if (!session) return signIn('google');
-    if (!image) return setErr('Please upload an image first.');
-
+    if (!image) return setErr('Please upload a photo first.');
     setBusy(true);
     setStatus('Submitting…');
     const res = await fetch('/api/generate', {
@@ -60,7 +65,7 @@ function StudioInner() {
       return;
     }
     window.dispatchEvent(new Event('atlas:credits'));
-    setStatus(t.output === 'video' ? 'Generating video… (~30–60s)' : 'Generating… (~10s)');
+    setStatus(t.output === 'video' ? 'Generating video…' : 'Generating…');
     timer.current = setInterval(async () => {
       try {
         const r = await fetch(`/api/creations/${j.id}`);
@@ -69,8 +74,7 @@ function StudioInner() {
           if (timer.current) clearInterval(timer.current);
           setBusy(false);
           setStatus(null);
-          const out = Array.isArray(c.outputs) ? c.outputs : [];
-          setResultUrl(out[0] || null);
+          setResultUrl((Array.isArray(c.outputs) ? c.outputs : [])[0] || null);
         } else if (c.status === 'failed') {
           if (timer.current) clearInterval(timer.current);
           setBusy(false);
@@ -85,78 +89,149 @@ function StudioInner() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-      <aside className="space-y-2">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">Apps</h2>
-        {TEMPLATES.map((tpl) => (
-          <button
-            key={tpl.id}
-            onClick={() => { setSelected(tpl.id); reset(); setImage(null); setPrompt(''); }}
-            className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${
-              tpl.id === selected ? 'border-brand bg-brand/5' : 'border-neutral-200 bg-white hover:border-neutral-300'
-            }`}
-          >
-            <span className="text-xl">{tpl.emoji}</span>
-            <span>
-              <span className="block text-sm font-medium">{tpl.title}</span>
-              <span className="block text-xs text-neutral-500">
-                {tpl.output === 'video' ? 'photo → video' : 'photo → image'} · {tpl.cost} cr
+    <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+      {/* template rail */}
+      <aside>
+        <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          Choose an app
+        </h2>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          {TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              onClick={() => pick(tpl.id)}
+              className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                tpl.id === selected
+                  ? 'border-brand-300 bg-brand-50 shadow-soft'
+                  : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+              }`}
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg ${
+                  tpl.id === selected ? 'bg-white' : 'bg-neutral-100'
+                }`}
+              >
+                {tpl.emoji}
               </span>
-            </span>
-          </button>
-        ))}
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{tpl.title}</span>
+                <span className="block text-xs text-neutral-400">
+                  {tpl.cost} cr · {tpl.output === 'video' ? 'video' : 'image'}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
       </aside>
 
-      <section className="space-y-5">
-        <div>
-          <h1 className="text-2xl font-bold">{t.emoji} {t.title}</h1>
-          <p className="text-neutral-600">{t.description}</p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">Upload your photo</label>
-          <input type="file" accept="image/*" onChange={onFile} />
-          {image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="input" className="mt-3 max-h-48 rounded-lg border" />
-          )}
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Prompt <span className="text-neutral-400">(optional — leave blank for the preset)</span>
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={t.promptPlaceholder}
-            rows={3}
-            className="w-full rounded-lg border border-neutral-300 p-3 text-sm"
-          />
-        </div>
-
-        <button
-          onClick={generate}
-          disabled={busy}
-          className="rounded-lg bg-brand px-6 py-3 font-medium text-white disabled:opacity-50"
-        >
-          {busy ? 'Working…' : `Generate · ${t.cost} credits`}
-        </button>
-
-        {status && <p className="text-sm text-neutral-600">{status}</p>}
-        {err && <p className="text-sm text-red-600">{err}</p>}
-
-        {resultUrl && (
-          <div className="space-y-2">
-            {t.output === 'video' ? (
-              <video src={resultUrl} controls autoPlay loop className="w-full max-w-xl rounded-xl border" />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={resultUrl} alt="result" referrerPolicy="no-referrer" className="w-full max-w-xl rounded-xl border" />
-            )}
-            <a href={`/api/download?url=${encodeURIComponent(resultUrl)}`} className="inline-block rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5">⬇ Download</a>
+      {/* workspace */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-2xl">
+            {t.emoji}
+          </span>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">{t.title}</h1>
+            <p className="text-sm text-neutral-500">{t.description}</p>
           </div>
-        )}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* inputs */}
+          <div className="space-y-4">
+            <label
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
+              className={`flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                dragging ? 'border-brand-400 bg-brand-50' : 'border-neutral-300 hover:border-brand-300 hover:bg-neutral-50'
+              }`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFile(e.target.files?.[0] || undefined)}
+              />
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt="input" className="max-h-52 rounded-lg" />
+              ) : (
+                <>
+                  <UploadCloud className="h-8 w-8 text-neutral-400" />
+                  <span className="mt-2 text-sm font-medium">Drop a photo or click to upload</span>
+                  <span className="mt-0.5 text-xs text-neutral-400">JPG · PNG · WEBP</span>
+                </>
+              )}
+            </label>
+            {image && (
+              <button onClick={() => setImage(null)} className="text-xs text-neutral-400 hover:text-neutral-600">
+                Remove photo
+              </button>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Prompt <span className="font-normal text-neutral-400">(optional)</span>
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={t.promptPlaceholder}
+                rows={3}
+                className="w-full resize-none rounded-xl border border-neutral-300 p-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
+
+            <button onClick={generate} disabled={busy} className="btn-brand w-full">
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> {status || 'Working…'}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" /> Generate · {t.cost} credits
+                </>
+              )}
+            </button>
+            {err && (
+              <p className="flex items-center gap-1.5 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {err}
+              </p>
+            )}
+          </div>
+
+          {/* result */}
+          <div>
+            <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              {resultUrl ? (
+                t.output === 'video' ? (
+                  <video src={resultUrl} controls autoPlay loop className="h-full w-full object-contain" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={resultUrl} alt="result" referrerPolicy="no-referrer" className="h-full w-full object-contain" />
+                )
+              ) : busy ? (
+                <div className="flex flex-col items-center gap-3 text-neutral-400">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+                  <span className="text-sm">{status}</span>
+                  <span className="text-xs text-neutral-300">{t.output === 'video' ? '~30–60s' : '~10s'}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-neutral-300">
+                  <Sparkles className="h-8 w-8" />
+                  <span className="text-sm">Your result appears here</span>
+                </div>
+              )}
+            </div>
+            {resultUrl && (
+              <a href={`/api/download?url=${encodeURIComponent(resultUrl)}`} className="btn-ghost mt-3 w-full">
+                <Download className="h-4 w-4" /> Download
+              </a>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -164,7 +239,7 @@ function StudioInner() {
 
 export default function StudioPage() {
   return (
-    <Suspense fallback={<p>Loading…</p>}>
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></div>}>
       <StudioInner />
     </Suspense>
   );

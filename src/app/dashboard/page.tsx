@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { getTemplate } from '@/config/templates';
+import Link from 'next/link';
+import { Download, ImageOff, Loader2, Sparkles } from 'lucide-react';
 
 interface Creation {
   id: string;
@@ -13,13 +15,19 @@ interface Creation {
   createdAt: string;
 }
 
+function Center({ children }: { children: React.ReactNode }) {
+  return <div className="flex min-h-[40vh] items-center justify-center">{children}</div>;
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [items, setItems] = useState<Creation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const r = await fetch('/api/creations');
     if (r.ok) setItems((await r.json()).creations);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -36,46 +44,75 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, [items]);
 
-  if (status === 'loading') return <p>Loading…</p>;
+  if (status === 'loading') return <Center><Loader2 className="h-6 w-6 animate-spin text-brand-500" /></Center>;
   if (!session)
     return (
-      <button onClick={() => signIn('google')} className="rounded-lg bg-brand px-4 py-2 text-white">
-        Sign in to see your creations
-      </button>
+      <Center>
+        <div className="text-center">
+          <p className="mb-4 text-neutral-500">Sign in to see your creations.</p>
+          <button onClick={() => signIn('google')} className="btn-brand">Sign in</button>
+        </div>
+      </Center>
     );
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">My creations</h1>
-      {items.length === 0 ? (
-        <p className="text-neutral-500">Nothing yet. Head to the studio to make something.</p>
+      <h1 className="text-2xl font-bold tracking-tight">My creations</h1>
+
+      {loading ? (
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => <div key={i} className="skeleton aspect-square rounded-2xl" />)}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="mt-20 flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
+            <Sparkles className="h-6 w-6 text-brand-400" />
+          </span>
+          <p className="text-neutral-500">Nothing here yet.</p>
+          <Link href="/studio" className="btn-brand">Create your first</Link>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => {
-            const out = getTemplate(c.templateId)?.output ?? 'image';
+            const tpl = getTemplate(c.templateId);
+            const out = tpl?.output ?? 'image';
             return (
-              <div key={c.id} className="rounded-xl border border-neutral-200 bg-white p-3">
-                {c.status === 'completed' && c.outputs?.[0] ? (
-                  out === 'video' ? (
-                    <video src={c.outputs[0]} controls loop className="w-full rounded-lg" />
+              <div key={c.id} className="card overflow-hidden">
+                <div className="flex aspect-square items-center justify-center bg-neutral-50">
+                  {c.status === 'completed' && c.outputs?.[0] ? (
+                    out === 'video' ? (
+                      <video src={c.outputs[0]} controls loop className="h-full w-full object-contain" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.outputs[0]} alt="" referrerPolicy="no-referrer" className="h-full w-full object-contain" />
+                    )
+                  ) : c.status === 'failed' ? (
+                    <div className="flex flex-col items-center gap-1 text-neutral-400">
+                      <ImageOff className="h-6 w-6" />
+                      <span className="text-xs">Failed (refunded)</span>
+                    </div>
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.outputs[0]} alt="" referrerPolicy="no-referrer" className="w-full rounded-lg" />
-                  )
-                ) : (
-                  <div className="flex h-40 items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-500">
-                    {c.status === 'failed' ? 'Failed (refunded)' : 'Generating…'}
-                  </div>
-                )}
-                <p className="mt-2 line-clamp-2 text-xs text-neutral-500">{c.prompt}</p>
-                {c.status === 'completed' && c.outputs?.[0] && (
-                  <a
-                    href={`/api/download?url=${encodeURIComponent(c.outputs[0])}`}
-                    className="mt-2 inline-block text-xs font-medium text-brand underline"
-                  >
-                    ⬇ Download
-                  </a>
-                )}
+                    <div className="flex flex-col items-center gap-2 text-neutral-400">
+                      <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
+                      <span className="text-xs">Generating…</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2 p-3">
+                  <span className="flex items-center gap-1.5 truncate text-xs text-neutral-500">
+                    <span>{tpl?.emoji}</span>
+                    <span className="truncate">{tpl?.title}</span>
+                  </span>
+                  {c.status === 'completed' && c.outputs?.[0] && (
+                    <a
+                      href={`/api/download?url=${encodeURIComponent(c.outputs[0])}`}
+                      title="Download"
+                      className="shrink-0 text-neutral-400 transition hover:text-brand-600"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}

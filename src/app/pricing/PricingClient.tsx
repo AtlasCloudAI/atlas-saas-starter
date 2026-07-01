@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import type { CreditPack } from '@/config/pricing';
+import { Check, Coins, Loader2, Gift } from 'lucide-react';
 
 export default function PricingClient({
   packs,
@@ -51,30 +52,41 @@ export default function PricingClient({
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">Pricing</h1>
-        <p className="mt-2 text-neutral-600">Buy credits, generate videos. Credits never expire.</p>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple credit pricing</h1>
+        <p className="mt-3 text-neutral-500">Buy credits, generate media. Credits never expire.</p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">
         {packs.map((p) => (
           <div
             key={p.id}
-            className={`rounded-2xl border bg-white p-6 ${
-              p.highlight ? 'border-brand ring-1 ring-brand' : 'border-neutral-200'
-            }`}
+            className={`card relative flex flex-col p-7 ${p.highlight ? 'ring-2 ring-brand-400' : ''}`}
           >
-            <div className="text-lg font-semibold">{p.name}</div>
-            <div className="mt-2 text-3xl font-bold">${p.priceUsd}</div>
-            <div className="mt-1 text-sm text-neutral-500">{p.credits} credits</div>
+            {p.highlight && (
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-gradient px-3 py-1 text-xs font-semibold text-white shadow-glow">
+                Most popular
+              </span>
+            )}
+            <div className="text-sm font-medium text-neutral-500">{p.name}</div>
+            <div className="mt-2 text-4xl font-bold">${p.priceUsd}</div>
+            <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-brand-600">
+              <Coins className="h-4 w-4" />
+              {p.credits.toLocaleString()} credits
+            </div>
+            <ul className="mt-5 space-y-2 text-sm text-neutral-600">
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />~{Math.floor(p.credits / 5).toLocaleString()}+ generations</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />Access to all apps</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />Credits never expire</li>
+            </ul>
             {mode === 'checkout' && (
               <button
                 onClick={() => buy(p.id)}
                 disabled={busy === p.id}
-                className="mt-4 w-full rounded-lg bg-brand py-2 font-medium text-white disabled:opacity-50"
+                className={`mt-6 w-full ${p.highlight ? 'btn-brand' : 'btn-ghost'}`}
               >
-                {busy === p.id ? '…' : 'Buy'}
+                {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buy credits'}
               </button>
             )}
           </div>
@@ -82,22 +94,21 @@ export default function PricingClient({
       </div>
 
       {mode === 'redeem' && (
-        <div className="mx-auto max-w-md rounded-2xl border border-neutral-200 bg-white p-6 text-center">
-          <h2 className="font-semibold">Have a redeem code?</h2>
-          <p className="mb-3 text-sm text-neutral-500">Enter an Atlas credit code to top up.</p>
+        <div className="card mx-auto max-w-md p-7 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50">
+            <Gift className="h-5 w-5 text-brand-500" />
+          </span>
+          <h2 className="mt-3 font-semibold">Have a redeem code?</h2>
+          <p className="mb-4 mt-1 text-sm text-neutral-500">Enter an Atlas credit code to top up.</p>
           <div className="flex gap-2">
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="ATLAS-XXXX-XXXX"
-              className="flex-1 rounded-lg border border-neutral-300 p-2 text-sm"
+              className="flex-1 rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
-            <button
-              onClick={redeem}
-              disabled={busy === 'redeem' || !code}
-              className="rounded-lg bg-brand px-4 font-medium text-white disabled:opacity-50"
-            >
-              Redeem
+            <button onClick={redeem} disabled={busy === 'redeem' || !code} className="btn-brand">
+              {busy === 'redeem' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Redeem'}
             </button>
           </div>
         </div>
