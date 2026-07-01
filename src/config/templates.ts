@@ -63,6 +63,8 @@ export const TEMPLATES: Template[] = [
   {
     ...EDIT,
     id: 'virtual-staging',
+    model: 'alibaba/qwen-image/edit-plus-20251215', // cheaper + supports multi-image; verified
+    atlasCost: '$0.021',
     title: 'AI Virtual Staging',
     description: 'Empty room → furnished real-estate listing.',
     emoji: '🛋️',
@@ -73,6 +75,9 @@ export const TEMPLATES: Template[] = [
   {
     ...EDIT,
     id: 'wedding',
+    model: 'google/nano-banana-2/edit-developer', // better face fidelity for wedding; verified
+    atlasCost: '$0.04',
+    extra: { aspect_ratio: '3:4' },
     title: 'AI Wedding Photoshoot',
     description: 'A photo → a dreamy wedding shoot.',
     emoji: '💍',

@@ -14,4 +14,6 @@ next-env.d.ts
 # internal docs — NOT part of the public template
 RESEARCH.md
 TEAM_SYNC.md
+APP_SPECS.md
+VERIFICATION.md
 .env*
