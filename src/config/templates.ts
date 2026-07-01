@@ -1,18 +1,17 @@
 /**
- * Launch scenarios. Each binds a REAL Atlas model (verified working) to a
+ * Launch scenarios. Each binds a REAL Atlas model (verified 2026-07-01) to a
  * creative preset. All take ONE uploaded image.
  *
- *   image-edit  → generateImage, input under `images` (seedream .../edit)
- *   i2v         → generateVideo, input under `image`  (seedance i2v)
+ * IDENTITY PRESERVATION (verified): generic edit models + weak prompts REPLACE
+ * the face on big edits (selfie -> studio headshot). Fix = nano-banana-pro
+ * (Gemini, strongest consistency) + a STRONG "keep the exact same face" prompt.
+ * So all people/subject apps use nano-banana-pro/edit-developer. Product/room
+ * apps (identity less sensitive) stay on cheaper seedream/qwen.
  *
- * `cost` is in your in-app credits (config/pricing.ts). Atlas's real per-run
- * cost is a few cents, so every scenario is high-margin.
+ *   image-edit  -> generateImage, input under `images`
+ *   i2v         -> generateVideo, input under `image` (singular)
  *
- * Want UGC-avatar ads or micro-drama? Those need talking-avatar / multi-shot
- * models with higher technical risk — add them once their endpoints are
- * verified. Multi-image scenarios (try-on, baby-predictor, group reunion) need
- * a 2nd reference image and a different UI, so they're left out of this
- * single-image gallery.
+ * `cost` is in in-app credits (config/pricing.ts). Atlas real cost noted per app.
  */
 export interface Template {
   id: string;
@@ -30,110 +29,115 @@ export interface Template {
   atlasCost: string;
 }
 
-const EDIT = {
+// people / subject-preserving edits — needs the strongest identity model
+const KEEP = {
   output: 'image' as const,
   endpoint: 'generateImage' as const,
-  model: 'bytedance/seedream-v4.5/edit',
+  model: 'google/nano-banana-pro/edit-developer',
   imageField: 'images' as const,
-  cost: 8,
-  atlasCost: '$0.036',
+  cost: 10,
+  atlasCost: '$0.07',
 };
+// the shared "do not change the person" clause, verified to preserve identity
+const LOCK =
+  'Keep the EXACT same person and face — identical facial features, eyes, nose, mouth, face shape, jawline, skin tone and hair. Do NOT turn them into a different person.';
 
 export const TEMPLATES: Template[] = [
   {
-    ...EDIT,
+    ...KEEP,
     id: 'headshot',
     title: 'AI Professional Headshot',
     description: 'Selfie → studio-grade corporate headshot.',
     emoji: '👔',
-    promptPlaceholder: 'navy business suit, soft window light, confident smile',
-    defaultPrompt:
-      'Transform this person into a professional corporate headshot: tasteful business attire, clean neutral studio background, soft professional lighting, confident friendly expression, photorealistic.',
+    extra: { aspect_ratio: '1:1' },
+    promptPlaceholder: 'navy suit, grey studio backdrop, confident smile',
+    defaultPrompt: `${LOCK} Only change their clothing to a tailored business suit and the background to a clean professional studio backdrop with soft lighting. Front-facing corporate headshot of the same person, photorealistic.`,
   },
   {
-    ...EDIT,
-    id: 'product-photo',
-    title: 'AI Product Photo',
-    description: 'Any product → clean premium studio scene.',
-    emoji: '📦',
-    promptPlaceholder: 'on a marble podium, soft studio shadows, minimal beige backdrop',
-    defaultPrompt:
-      'Place this product in a clean professional e-commerce studio scene: soft realistic shadows, premium minimal backdrop, even commercial lighting, crisp focus, hero product shot.',
-  },
-  {
-    ...EDIT,
-    id: 'virtual-staging',
-    model: 'alibaba/qwen-image/edit-plus-20251215', // cheaper + supports multi-image; verified
-    atlasCost: '$0.021',
-    title: 'AI Virtual Staging',
-    description: 'Empty room → furnished real-estate listing.',
-    emoji: '🛋️',
-    promptPlaceholder: 'modern Scandinavian living room, warm and inviting',
-    defaultPrompt:
-      'Furnish this empty room with tasteful modern furniture and decor: warm inviting staging, realistic interior design, natural lighting, photorealistic. Keep the room architecture and windows unchanged.',
-  },
-  {
-    ...EDIT,
+    ...KEEP,
     id: 'wedding',
-    model: 'google/nano-banana-2/edit-developer', // better face fidelity for wedding; verified
-    atlasCost: '$0.04',
-    extra: { aspect_ratio: '3:4' },
     title: 'AI Wedding Photoshoot',
     description: 'A photo → a dreamy wedding shoot.',
     emoji: '💍',
-    promptPlaceholder: 'elegant white gown, golden-hour garden, cinematic bokeh',
-    defaultPrompt:
-      'Transform this into an elegant wedding photoshoot: formal wedding attire, romantic scenic background, soft cinematic golden-hour lighting, professional photography, keep the faces faithful.',
+    extra: { aspect_ratio: '3:4' },
+    promptPlaceholder: 'white gown, golden-hour garden, cinematic',
+    defaultPrompt: `${LOCK} Only change their outfit to elegant formal wedding attire and place them in a romantic scenic background (garden / beach / cathedral) with soft golden-hour lighting. Professional wedding photograph of the same person, photorealistic.`,
   },
   {
-    ...EDIT,
-    id: 'pet-portrait',
-    title: 'AI Pet Portrait',
-    description: 'Your pet → a regal Renaissance painting.',
-    emoji: '🐾',
-    promptPlaceholder: 'royal velvet robe, golden crown, oil-painting style',
-    defaultPrompt:
-      'Transform this pet into a regal Renaissance oil-painting portrait: royal attire, classic painterly style, ornate background, museum quality, keep the pet recognizable.',
-  },
-  {
-    ...EDIT,
-    id: 'photo-restore',
-    title: 'AI Photo Restore',
-    description: 'Old/damaged photo → restored & colorized.',
-    emoji: '🖼️',
-    promptPlaceholder: 'repair scratches, natural colors, sharpen details',
-    defaultPrompt:
-      'Restore and colorize this old photo: repair scratches, tears and damage, add natural realistic colors, sharpen details, while preserving the original faces and composition.',
-  },
-  {
-    ...EDIT,
+    ...KEEP,
     id: 'hairstyle',
     title: 'AI Hairstyle Try-On',
     description: 'See yourself with a new hairstyle.',
     emoji: '💇',
-    promptPlaceholder: 'long wavy bob, warm brown, natural volume',
-    defaultPrompt:
-      'Give this person a stylish new hairstyle: modern flattering cut, natural realistic hair, keep the face and identity faithful, photorealistic.',
+    promptPlaceholder: 'long wavy bob, warm brown',
+    defaultPrompt: `${LOCK} Only change the HAIRSTYLE to a stylish modern cut (natural realistic hair, believable hairline and volume). Keep the clothing and background the same. Photorealistic.`,
   },
   {
-    ...EDIT,
+    ...KEEP,
     id: 'tattoo',
     title: 'AI Tattoo Try-On',
     description: 'Preview a tattoo on your skin.',
     emoji: '🖋️',
-    promptPlaceholder: 'fine-line dragon on the forearm, black ink',
-    defaultPrompt:
-      'Add a realistic tattoo to this person: natural skin integration, believable shading and placement, photorealistic, keep everything else unchanged.',
+    promptPlaceholder: 'fine-line dragon on the forearm',
+    defaultPrompt: `${LOCK} Only ADD a realistic tattoo on the forearm with natural skin integration and believable shading. Change nothing else. Photorealistic.`,
   },
   {
-    ...EDIT,
+    ...KEEP,
     id: 'makeup',
     title: 'AI Makeup Try-On',
     description: 'Try a professional makeup look.',
     emoji: '💄',
-    promptPlaceholder: 'soft glam, warm tones, natural flawless skin',
+    promptPlaceholder: 'soft glam, warm tones',
+    defaultPrompt: `${LOCK} Only APPLY tasteful professional soft-glam makeup (natural flawless skin, enhanced features). Keep the same hairstyle, clothing and background. Photorealistic.`,
+  },
+  {
+    ...KEEP,
+    id: 'photo-restore',
+    title: 'AI Photo Restore',
+    description: 'Old/damaged photo → restored & colorized.',
+    emoji: '🖼️',
+    promptPlaceholder: 'repair scratches, natural colors',
+    defaultPrompt: `Restore this old photo: repair scratches, tears and damage, naturally colorize if black-and-white, recover fine detail and sharpness. ${LOCK} Keep the original pose, clothing and composition — only repair and enhance, do not add or remove people.`,
+  },
+  {
+    ...KEEP,
+    id: 'pet-portrait',
+    title: 'AI Pet Portrait',
+    description: 'Your pet → a regal Renaissance painting.',
+    emoji: '🐾',
+    promptPlaceholder: 'royal robe, golden crown, oil-painting',
     defaultPrompt:
-      'Apply elegant professional makeup to this person: natural flawless look, enhanced features, soft glam, keep identity faithful, photorealistic.',
+      'Keep the EXACT same pet — identical breed, fur color, markings and face, clearly recognizable as the same animal. Turn it into a regal Renaissance oil-painting portrait: royal attire, ornate classical background, painterly brushwork.',
+  },
+  {
+    id: 'product-photo',
+    title: 'AI Product Photo',
+    description: 'Any product → clean premium studio scene.',
+    emoji: '📦',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'bytedance/seedream-v4.5/edit',
+    imageField: 'images',
+    cost: 8,
+    atlasCost: '$0.036',
+    promptPlaceholder: 'marble podium, soft studio shadows, beige backdrop',
+    defaultPrompt:
+      'Keep the EXACT same product — identical shape, color, label, text and design, do not alter the product itself. Only place it in a clean professional e-commerce studio scene: soft realistic shadows, premium minimal backdrop, even commercial lighting, hero product shot.',
+  },
+  {
+    id: 'virtual-staging',
+    title: 'AI Virtual Staging',
+    description: 'Empty room → furnished real-estate listing.',
+    emoji: '🛋️',
+    output: 'image',
+    endpoint: 'generateImage',
+    model: 'alibaba/qwen-image/edit-plus-20251215',
+    imageField: 'images',
+    cost: 8,
+    atlasCost: '$0.021',
+    promptPlaceholder: 'modern Scandinavian living room, warm',
+    defaultPrompt:
+      'Keep the EXACT same room architecture — identical walls, windows, doors, floor and camera perspective, do not change the structure. Only ADD tasteful modern furniture and decor for warm inviting real-estate staging, realistic interior design, natural lighting, photorealistic.',
   },
   {
     id: 'photo-to-life',
@@ -145,10 +149,10 @@ export const TEMPLATES: Template[] = [
     model: 'bytedance/seedance-v1-pro-fast/image-to-video',
     imageField: 'image',
     cost: 5,
-    promptPlaceholder: 'gentle smile, hair in the breeze, slow cinematic push-in',
+    atlasCost: '$0.009',
+    promptPlaceholder: 'gentle smile, hair in the breeze, slow push-in',
     defaultPrompt:
       'The subject comes to life with subtle natural motion: gentle smile, soft head movement, hair and clothing moving slightly, slow cinematic camera push-in, stable and realistic.',
-    atlasCost: '$0.009',
   },
 ];
 
