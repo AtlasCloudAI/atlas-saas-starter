@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { getTemplate } from '@/config/templates';
+import { useI18n } from '@/i18n/provider';
 import Link from 'next/link';
 import { Download, ImageOff, Loader2, Sparkles } from 'lucide-react';
 
@@ -21,6 +22,7 @@ function Center({ children }: { children: React.ReactNode }) {
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
+  const { t, appText } = useI18n();
   const [items, setItems] = useState<Creation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,15 +51,15 @@ export default function Dashboard() {
     return (
       <Center>
         <div className="text-center">
-          <p className="mb-4 text-neutral-500">Sign in to see your creations.</p>
-          <button onClick={() => signIn('google')} className="btn-brand">Sign in</button>
+          <p className="mb-4 text-neutral-500">{t('dashboard.signInSee')}</p>
+          <button onClick={() => signIn('google')} className="btn-brand">{t('common.signIn')}</button>
         </div>
       </Center>
     );
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight">My creations</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h1>
 
       {loading ? (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -68,8 +70,8 @@ export default function Dashboard() {
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
             <Sparkles className="h-6 w-6 text-brand-400" />
           </span>
-          <p className="text-neutral-500">Nothing here yet.</p>
-          <Link href="/studio" className="btn-brand">Create your first</Link>
+          <p className="text-neutral-500">{t('dashboard.empty')}</p>
+          <Link href="/studio" className="btn-brand">{t('dashboard.createFirst')}</Link>
         </div>
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -89,24 +91,24 @@ export default function Dashboard() {
                   ) : c.status === 'failed' ? (
                     <div className="flex flex-col items-center gap-1 text-neutral-400">
                       <ImageOff className="h-6 w-6" />
-                      <span className="text-xs">Failed (refunded)</span>
+                      <span className="text-xs">{t('dashboard.failed')}</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-neutral-400">
                       <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
-                      <span className="text-xs">Generating…</span>
+                      <span className="text-xs">{t('dashboard.generating')}</span>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2 p-3">
                   <span className="flex items-center gap-1.5 truncate text-xs text-neutral-500">
                     <span>{tpl?.emoji}</span>
-                    <span className="truncate">{tpl?.title}</span>
+                    <span className="truncate">{appText(c.templateId).title}</span>
                   </span>
                   {c.status === 'completed' && c.outputs?.[0] && (
                     <a
                       href={`/api/download?url=${encodeURIComponent(c.outputs[0])}`}
-                      title="Download"
+                      title={t('studio.download')}
                       className="shrink-0 text-neutral-400 transition hover:text-brand-600"
                     >
                       <Download className="h-4 w-4" />

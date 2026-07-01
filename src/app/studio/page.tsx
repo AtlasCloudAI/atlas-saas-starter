@@ -4,13 +4,16 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { TEMPLATES, getTemplate } from '@/config/templates';
+import { useI18n } from '@/i18n/provider';
 import { UploadCloud, Sparkles, Download, Loader2, AlertCircle } from 'lucide-react';
 
 function StudioInner() {
   const { data: session } = useSession();
+  const { t, appText } = useI18n();
   const sp = useSearchParams();
   const [selected, setSelected] = useState(sp.get('t') || TEMPLATES[0].id);
-  const t = getTemplate(selected) || TEMPLATES[0];
+  const tmpl = getTemplate(selected) || TEMPLATES[0];
+  const a = appText(tmpl.id);
 
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState<string | null>(null);
@@ -45,27 +48,23 @@ function StudioInner() {
   async function generate() {
     reset();
     if (!session) return signIn('google');
-    if (!image) return setErr('Please upload a photo first.');
+    if (!image) return setErr(t('studio.uploadFirst'));
     setBusy(true);
-    setStatus('Submitting…');
+    setStatus(t('studio.submitting'));
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateId: t.id, prompt, image }),
+      body: JSON.stringify({ templateId: tmpl.id, prompt, image }),
     });
     const j = await res.json();
     if (!res.ok) {
       setBusy(false);
       setStatus(null);
-      setErr(
-        j.error === 'insufficient_credits'
-          ? 'Not enough credits — top up on the Pricing page.'
-          : `Error: ${j.error || 'failed'}`,
-      );
+      setErr(j.error === 'insufficient_credits' ? t('studio.notEnough') : `Error: ${j.error || 'failed'}`);
       return;
     }
     window.dispatchEvent(new Event('atlas:credits'));
-    setStatus(t.output === 'video' ? 'Generating video…' : 'Generating…');
+    setStatus(tmpl.output === 'video' ? t('studio.genVideo') : t('studio.genImage'));
     timer.current = setInterval(async () => {
       try {
         const r = await fetch(`/api/creations/${j.id}`);
@@ -79,44 +78,43 @@ function StudioInner() {
           if (timer.current) clearInterval(timer.current);
           setBusy(false);
           setStatus(null);
-          setErr('Generation failed — your credits were refunded.');
+          setErr(t('studio.failed'));
           window.dispatchEvent(new Event('atlas:credits'));
         }
       } catch {
         /* keep polling */
       }
-    }, t.output === 'video' ? 4000 : 3000);
+    }, tmpl.output === 'video' ? 4000 : 3000);
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-      {/* template rail */}
       <aside>
         <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-          Choose an app
+          {t('studio.chooseApp')}
         </h2>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-          {TEMPLATES.map((tpl) => (
+          {TEMPLATES.map((x) => (
             <button
-              key={tpl.id}
-              onClick={() => pick(tpl.id)}
+              key={x.id}
+              onClick={() => pick(x.id)}
               className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
-                tpl.id === selected
+                x.id === selected
                   ? 'border-brand-300 bg-brand-50 shadow-soft'
                   : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
               }`}
             >
               <span
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg ${
-                  tpl.id === selected ? 'bg-white' : 'bg-neutral-100'
+                  x.id === selected ? 'bg-white' : 'bg-neutral-100'
                 }`}
               >
-                {tpl.emoji}
+                {x.emoji}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{tpl.title}</span>
+                <span className="block truncate text-sm font-medium">{appText(x.id).title}</span>
                 <span className="block text-xs text-neutral-400">
-                  {tpl.cost} cr · {tpl.output === 'video' ? 'video' : 'image'}
+                  {x.cost} · {x.output === 'video' ? 'video' : 'image'}
                 </span>
               </span>
             </button>
@@ -124,20 +122,18 @@ function StudioInner() {
         </div>
       </aside>
 
-      {/* workspace */}
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-2xl">
-            {t.emoji}
+            {tmpl.emoji}
           </span>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">{t.title}</h1>
-            <p className="text-sm text-neutral-500">{t.description}</p>
+            <h1 className="text-xl font-bold tracking-tight">{a.title}</h1>
+            <p className="text-sm text-neutral-500">{a.description}</p>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* inputs */}
           <div className="space-y-4">
             <label
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -147,37 +143,32 @@ function StudioInner() {
                 dragging ? 'border-brand-400 bg-brand-50' : 'border-neutral-300 hover:border-brand-300 hover:bg-neutral-50'
               }`}
             >
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0] || undefined)}
-              />
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] || undefined)} />
               {image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={image} alt="input" className="max-h-52 rounded-lg" />
               ) : (
                 <>
                   <UploadCloud className="h-8 w-8 text-neutral-400" />
-                  <span className="mt-2 text-sm font-medium">Drop a photo or click to upload</span>
-                  <span className="mt-0.5 text-xs text-neutral-400">JPG · PNG · WEBP</span>
+                  <span className="mt-2 text-sm font-medium">{t('studio.dropOrClick')}</span>
+                  <span className="mt-0.5 text-xs text-neutral-400">{t('studio.formats')}</span>
                 </>
               )}
             </label>
             {image && (
               <button onClick={() => setImage(null)} className="text-xs text-neutral-400 hover:text-neutral-600">
-                Remove photo
+                {t('studio.removePhoto')}
               </button>
             )}
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                Prompt <span className="font-normal text-neutral-400">(optional)</span>
+                {t('studio.prompt')} <span className="font-normal text-neutral-400">{t('studio.promptOpt')}</span>
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={t.promptPlaceholder}
+                placeholder={tmpl.promptPlaceholder}
                 rows={3}
                 className="w-full resize-none rounded-xl border border-neutral-300 p-3 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               />
@@ -186,11 +177,11 @@ function StudioInner() {
             <button onClick={generate} disabled={busy} className="btn-brand w-full">
               {busy ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> {status || 'Working…'}
+                  <Loader2 className="h-4 w-4 animate-spin" /> {status || '…'}
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" /> Generate · {t.cost} credits
+                  <Sparkles className="h-4 w-4" /> {t('studio.generate')} · {tmpl.cost} {t('studio.credits')}
                 </>
               )}
             </button>
@@ -202,11 +193,10 @@ function StudioInner() {
             )}
           </div>
 
-          {/* result */}
           <div>
             <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
               {resultUrl ? (
-                t.output === 'video' ? (
+                tmpl.output === 'video' ? (
                   <video src={resultUrl} controls autoPlay loop className="h-full w-full object-contain" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -216,18 +206,18 @@ function StudioInner() {
                 <div className="flex flex-col items-center gap-3 text-neutral-400">
                   <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
                   <span className="text-sm">{status}</span>
-                  <span className="text-xs text-neutral-300">{t.output === 'video' ? '~30–60s' : '~10s'}</span>
+                  <span className="text-xs text-neutral-300">{tmpl.output === 'video' ? '~30–60s' : '~10s'}</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 text-neutral-300">
                   <Sparkles className="h-8 w-8" />
-                  <span className="text-sm">Your result appears here</span>
+                  <span className="text-sm">{t('studio.resultHere')}</span>
                 </div>
               )}
             </div>
             {resultUrl && (
               <a href={`/api/download?url=${encodeURIComponent(resultUrl)}`} className="btn-ghost mt-3 w-full">
-                <Download className="h-4 w-4" /> Download
+                <Download className="h-4 w-4" /> {t('studio.download')}
               </a>
             )}
           </div>

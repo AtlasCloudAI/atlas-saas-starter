@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import type { CreditPack } from '@/config/pricing';
+import { useI18n } from '@/i18n/provider';
 import { Check, Coins, Loader2, Gift } from 'lucide-react';
 
 export default function PricingClient({
@@ -13,6 +14,7 @@ export default function PricingClient({
   mode: 'checkout' | 'redeem';
 }) {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function PricingClient({
     const j = await r.json();
     setBusy(null);
     if (r.ok) {
-      setMsg(`✅ Added ${j.amount} credits!`);
+      setMsg(t('pricing.added', { n: j.amount }));
       setCode('');
       window.dispatchEvent(new Event('atlas:credits'));
     } else {
@@ -54,8 +56,8 @@ export default function PricingClient({
   return (
     <div className="space-y-12">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple credit pricing</h1>
-        <p className="mt-3 text-neutral-500">Buy credits, generate media. Credits never expire.</p>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('pricing.title')}</h1>
+        <p className="mt-3 text-neutral-500">{t('pricing.subtitle')}</p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">
@@ -66,19 +68,19 @@ export default function PricingClient({
           >
             {p.highlight && (
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-gradient px-3 py-1 text-xs font-semibold text-white shadow-glow">
-                Most popular
+                {t('pricing.popular')}
               </span>
             )}
             <div className="text-sm font-medium text-neutral-500">{p.name}</div>
             <div className="mt-2 text-4xl font-bold">${p.priceUsd}</div>
             <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-brand-600">
               <Coins className="h-4 w-4" />
-              {p.credits.toLocaleString()} credits
+              {p.credits.toLocaleString()} {t('pricing.credits')}
             </div>
             <ul className="mt-5 space-y-2 text-sm text-neutral-600">
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />~{Math.floor(p.credits / 5).toLocaleString()}+ generations</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />Access to all apps</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />Credits never expire</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />~{Math.floor(p.credits / 5).toLocaleString()}{t('pricing.featGen')}</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />{t('pricing.featApps')}</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-brand-500" />{t('pricing.featExpire')}</li>
             </ul>
             {mode === 'checkout' && (
               <button
@@ -86,7 +88,7 @@ export default function PricingClient({
                 disabled={busy === p.id}
                 className={`mt-6 w-full ${p.highlight ? 'btn-brand' : 'btn-ghost'}`}
               >
-                {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buy credits'}
+                {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('pricing.buy')}
               </button>
             )}
           </div>
@@ -98,8 +100,8 @@ export default function PricingClient({
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50">
             <Gift className="h-5 w-5 text-brand-500" />
           </span>
-          <h2 className="mt-3 font-semibold">Have a redeem code?</h2>
-          <p className="mb-4 mt-1 text-sm text-neutral-500">Enter an Atlas credit code to top up.</p>
+          <h2 className="mt-3 font-semibold">{t('pricing.redeemTitle')}</h2>
+          <p className="mb-4 mt-1 text-sm text-neutral-500">{t('pricing.redeemDesc')}</p>
           <div className="flex gap-2">
             <input
               value={code}
@@ -108,7 +110,7 @@ export default function PricingClient({
               className="flex-1 rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
             <button onClick={redeem} disabled={busy === 'redeem' || !code} className="btn-brand">
-              {busy === 'redeem' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Redeem'}
+              {busy === 'redeem' ? <Loader2 className="h-4 w-4 animate-spin" /> : t('pricing.redeem')}
             </button>
           </div>
         </div>
