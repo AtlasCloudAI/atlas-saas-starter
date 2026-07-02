@@ -65,6 +65,7 @@ type App = { id: string; href: string; icon: typeof Mic2; kind: string };
 const APPS: App[] = [
   { id: 'sku-studio', href: '/sku-studio', icon: ShoppingCart, kind: 'pipeline' },
   { id: 'course-studio', href: '/course-studio', icon: GraduationCap, kind: 'pipeline' },
+  { id: 'comic-studio', href: '/comic-studio', icon: Clapperboard, kind: 'pipeline' },
   { id: 'podcast-factory', href: '/podcast', icon: Mic2, kind: 'audio' },
   { id: 'image-explainer', href: '/image-explainer', icon: Images, kind: 'audio/video' },
   { id: 'product-recommendation', href: '/product-recommendation', icon: PackageSearch, kind: 'audio/video' },
