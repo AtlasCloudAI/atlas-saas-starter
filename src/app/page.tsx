@@ -21,6 +21,7 @@ import {
   ImageUp,
   Flame,
   Gem,
+  GraduationCap,
   Hammer,
   Heart,
   HeartHandshake,
@@ -57,12 +58,13 @@ import {
   DollarSign,
   Percent,
 } from 'lucide-react';
-import { appTitle, appDesc } from '@/config/appCatalog';
+import { appTitle, appDesc, isFeatured } from '@/config/appCatalog';
 
 type App = { id: string; href: string; icon: typeof Mic2; kind: string };
 
 const APPS: App[] = [
   { id: 'sku-studio', href: '/sku-studio', icon: ShoppingCart, kind: 'pipeline' },
+  { id: 'course-studio', href: '/course-studio', icon: GraduationCap, kind: 'pipeline' },
   { id: 'podcast-factory', href: '/podcast', icon: Mic2, kind: 'audio' },
   { id: 'image-explainer', href: '/image-explainer', icon: Images, kind: 'audio/video' },
   { id: 'product-recommendation', href: '/product-recommendation', icon: PackageSearch, kind: 'audio/video' },
@@ -227,8 +229,11 @@ export default function Home() {
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition duration-300 group-hover:scale-110">
                     <Icon className="h-6 w-6" />
                   </span>
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">
-                    {app.kind}
+                  <span className="flex items-center gap-1.5">
+                    {isFeatured(app.href) && (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">⭐ 精品</span>
+                    )}
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">{app.kind}</span>
                   </span>
                 </div>
                 <h3 className="mt-4 font-semibold">{appTitle(app.id, a.title)}</h3>

@@ -3,9 +3,15 @@ export type AppCat = 'production' | 'nocreative' | 'incomplete';
 
 // ✅ 可投入生产:有真实壁垒 / 多步 pipeline(3D、专用视频、真 pipeline、SKU 素材工厂)
 export const PRODUCTION_ROUTES = new Set<string>([
-  '/sku-studio', '/image-to-3d', '/text-to-3d', '/game-asset-3d', '/figurine-3d', '/memorial-figurine',
+  '/sku-studio', '/course-studio', '/image-to-3d', '/text-to-3d', '/game-asset-3d', '/figurine-3d', '/memorial-figurine',
   '/video-edit', '/video-upscale', '/course-video', '/podcast', '/ecommerce-suite',
 ]);
+
+// ⭐ 精品:重点打磨、可对外主推的旗舰应用
+export const FEATURED_ROUTES = new Set<string>(['/sku-studio', '/course-studio']);
+export function isFeatured(href: string): boolean {
+  return FEATURED_ROUTES.has(href);
+}
 
 // 🔴 未完善:纯前端空壳 / 只出 LLM 文案 / 名不副实
 export const INCOMPLETE_ROUTES = new Set<string>([
@@ -27,9 +33,14 @@ export const CAT_META: { key: AppCat; label: string; desc: string; dot: string; 
 ];
 
 // sku-studio 没有 i18n key,单独给标题/描述
+const CUSTOM_TITLES: Record<string, string> = { 'sku-studio': 'SKU 素材工厂', 'course-studio': 'AI 课程工厂' };
+const CUSTOM_DESCS: Record<string, string> = {
+  'sku-studio': '商品图 → 全套广告素材包',
+  'course-studio': '主题/材料 → 视频课(可选数字人讲师)',
+};
 export function appTitle(id: string, fallbackTitle: string): string {
-  return id === 'sku-studio' ? 'SKU 素材工厂' : fallbackTitle;
+  return CUSTOM_TITLES[id] || fallbackTitle;
 }
 export function appDesc(id: string, fallbackDesc: string): string {
-  return id === 'sku-studio' ? '商品图 → 全套广告素材包' : fallbackDesc;
+  return CUSTOM_DESCS[id] || fallbackDesc;
 }

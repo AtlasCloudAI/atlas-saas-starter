@@ -20,6 +20,7 @@ import {
   Dumbbell,
   Flame,
   Gem,
+  GraduationCap,
   Images,
   ImageUp,
   Hammer,
@@ -56,12 +57,13 @@ import {
   Cuboid,
 } from 'lucide-react';
 import { useI18n } from '@/i18n/provider';
-import { CAT_META, catOf, appTitle, appDesc, type AppCat } from '@/config/appCatalog';
+import { CAT_META, catOf, appTitle, appDesc, isFeatured, type AppCat } from '@/config/appCatalog';
 
 type NavApp = { href: string; id: string; icon: typeof Mic2 };
 
 const PRIMARY_APPS: NavApp[] = [
   { href: '/sku-studio', id: 'sku-studio', icon: ShoppingCart },
+  { href: '/course-studio', id: 'course-studio', icon: GraduationCap },
   { href: '/podcast', id: 'podcast-factory', icon: Mic2 },
   { href: '/image-explainer', id: 'image-explainer', icon: Images },
   { href: '/product-recommendation', id: 'product-recommendation', icon: PackageSearch },
@@ -213,7 +215,7 @@ export function AppSidebar() {
                             <Icon className="h-4 w-4" />
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold">{appTitle(app.id, text.title)}</span>
+                            <span className="block truncate text-sm font-semibold">{isFeatured(app.href) ? '⭐ ' : ''}{appTitle(app.id, text.title)}</span>
                             <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-neutral-400">{appDesc(app.id, text.description)}</span>
                           </span>
                         </Link>
