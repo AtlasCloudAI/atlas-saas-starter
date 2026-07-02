@@ -32,6 +32,7 @@ export const SKU_COSTS = {
   video: 25, // veo3.1 ref-to-video 1080p (~$0.2)
   ugcAudio: 6, // seed-audio (~$0.015)
   avatar: 20, // kling avatar (~$0.095)
+  handheld: 15, // nano-banana-pro/edit composite: put the product in the actor's hands (~$0.14)
 } as const;
 
 export type SkuAssetKind = 'main' | 'lifestyle' | 'detail' | 'banner';
@@ -207,10 +208,28 @@ export function submitUgcAudio(script: string): Promise<SubmitResult> {
   });
 }
 
+/**
+ * Composite the product INTO the actor's hands (dual-image edit) so the UGC
+ * talking video actually shows the product. Keeps both the face and the product
+ * identical — verified 2026-07-02 (same face + same product + natural grip).
+ * This fixes the earlier broken logic where the talking video had no product.
+ */
+export function submitHandheldActor(actorImageUrl: string, productImageUrl: string): Promise<SubmitResult> {
+  return submitGen({
+    endpoint: 'generateImage',
+    model: IMAGE_MODEL,
+    images: [actorImageUrl, productImageUrl],
+    imageField: 'images',
+    prompt:
+      'Image 1 is a person, image 2 is a product. Make the person from image 1 naturally hold and present the EXACT product from image 2 up near the shoulder toward the camera, as in an authentic UGC product-review selfie. Keep her face, hair and identity EXACTLY the same. Keep the product EXACTLY identical — same shape, color, material and proportions. Natural hand grip, consistent lighting, photorealistic vertical UGC selfie.',
+    extra: { resolution: '2k', aspect_ratio: '3:4' },
+  });
+}
+
 export function submitUgcAvatar(
   actorImageUrl: string,
   audioUrl: string,
-  prompt = 'Natural UGC selfie-style talking presenter, soft indoor lighting, subtle head nods and friendly expression.',
+  prompt = 'Natural UGC selfie-style talking presenter holding and showing the product to camera, soft indoor lighting, subtle head nods and friendly expression.',
 ): Promise<SubmitResult> {
   return submitGen({
     endpoint: 'generateVideo',

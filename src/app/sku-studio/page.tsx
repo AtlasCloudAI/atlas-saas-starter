@@ -18,7 +18,7 @@ import {
   Wand2,
 } from 'lucide-react';
 
-const COSTS = { plan: 3, asset: 15, video: 25, ugcAudio: 6, avatar: 20 };
+const COSTS = { plan: 3, asset: 15, video: 25, ugcAudio: 6, avatar: 20, handheld: 15 };
 
 type Slot = { status: 'idle' | 'processing' | 'done' | 'failed'; url?: string };
 type SkuAsset = { key: string; label: string; kind: string; prompt: string; aspectRatio: string };
@@ -114,6 +114,7 @@ export default function SkuStudioPage() {
   const [demo, setDemo] = useState<Slot>({ status: 'idle' });
   const [ugcAudio, setUgcAudio] = useState<Slot>({ status: 'idle' });
   const [actorImage, setActorImage] = useState('');
+  const [handheld, setHandheld] = useState<Slot>({ status: 'idle' });
   const [ugcVideo, setUgcVideo] = useState<Slot>({ status: 'idle' });
   const [copied, setCopied] = useState('');
 
@@ -190,15 +191,26 @@ export default function SkuStudioPage() {
   async function genUgcVideo() {
     if (!actorImage) return setErr('请上传一张 AI 主播/真人肖像作为 UGC 出镜形象。');
     if (ugcAudio.status !== 'done' || !ugcAudio.url) return setErr('请先生成口播音频。');
+    if (!productUrl) return setErr('请先生成方案(需要商品图)。');
     setErr(null);
     setBusy('avatar');
-    setUgcVideo({ status: 'processing' });
     try {
-      const j = await postJson('/api/sku/avatar', { actorImage, audioUrl: ugcAudio.url });
+      // step 1: 把商品合成进主播手里,这样口播视频里真的看得到商品(而不是空口讲)
+      let handheldUrl = handheld.status === 'done' ? handheld.url : undefined;
+      if (!handheldUrl) {
+        setHandheld({ status: 'processing' });
+        const hj = await postJson('/api/sku/handheld', { actorImage, productUrl });
+        handheldUrl = await pollCreation(hj.id);
+        setHandheld({ status: 'done', url: handheldUrl });
+      }
+      // step 2: 用「主播手持商品图」驱动数字人口播
+      setUgcVideo({ status: 'processing' });
+      const j = await postJson('/api/sku/avatar', { actorImage: handheldUrl, audioUrl: ugcAudio.url });
       const url = await pollCreation(j.id);
       setUgcVideo({ status: 'done', url });
       window.dispatchEvent(new Event('atlas:credits'));
     } catch {
+      setHandheld((s) => (s.status === 'processing' ? { status: 'failed' } : s));
       setUgcVideo({ status: 'failed' });
     }
     setBusy(null);
@@ -425,7 +437,7 @@ export default function SkuStudioPage() {
                 {ugcAudio.status === 'done' && (
                   <div className="mt-4 border-t border-neutral-100 pt-4">
                     <label className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
-                      <UploadCloud className="h-4 w-4" /> 上传出镜形象(AI 主播 / 真人肖像),生成数字人口播视频
+                      <UploadCloud className="h-4 w-4" /> 上传出镜形象(AI 主播 / 真人肖像)—— 会先把商品合成进 TA 手里再驱动口播,让视频里看得到商品
                     </label>
                     <div className="flex flex-wrap items-center gap-3">
                       <label className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50">
@@ -435,7 +447,10 @@ export default function SkuStudioPage() {
                           className="hidden"
                           onChange={async (e) => {
                             const f = e.target.files?.[0];
-                            if (f) setActorImage(await imageToDataUrl(f));
+                            if (f) {
+                              setActorImage(await imageToDataUrl(f));
+                              setHandheld({ status: 'idle' });
+                            }
                           }}
                         />
                         {actorImage ? (
@@ -445,12 +460,26 @@ export default function SkuStudioPage() {
                           <UploadCloud className="h-5 w-5 text-neutral-300" />
                         )}
                       </label>
+                      {handheld.status !== 'idle' && (
+                        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50" title="主播手持商品(自动合成)">
+                          {handheld.status === 'done' && handheld.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={handheld.url} alt="主播手持商品" className="h-full w-full object-cover" />
+                          ) : handheld.status === 'processing' ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-brand-400" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-red-400" />
+                          )}
+                        </div>
+                      )}
                       <button onClick={genUgcVideo} disabled={busy !== null} className="btn-brand">
-                        {ugcVideo.status === 'processing' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-                        生成 UGC 口播视频 · {COSTS.avatar}
+                        {busy === 'avatar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                        生成 UGC 口播视频(手持商品) · {COSTS.handheld + COSTS.avatar}
                       </button>
                       {ugcVideo.status === 'failed' && <span className="text-xs text-red-500">失败</span>}
                     </div>
+                    {handheld.status === 'processing' && <p className="mt-2 text-xs text-neutral-400">正在把商品合成进主播手里…</p>}
+                    {ugcVideo.status === 'processing' && <p className="mt-2 text-xs text-neutral-400">数字人口播生成中 ~5-7min…</p>}
                     {ugcVideo.status === 'done' && ugcVideo.url && (
                       <div className="mt-3">
                         <video src={ugcVideo.url} controls className="max-h-[360px] w-full rounded-lg" />
