@@ -10,10 +10,17 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const { templateId, prompt, image } = await req.json().catch(() => ({}));
+  const { templateId, prompt, image, images } = await req.json().catch(() => ({}));
   const t = getTemplate(templateId);
   if (!t) return NextResponse.json({ error: 'unknown_template' }, { status: 400 });
-  if (!image) return NextResponse.json({ error: 'image_required' }, { status: 400 });
+  const inputImages = Array.isArray(images)
+    ? images.filter((x: unknown) => typeof x === 'string' && x.startsWith('data:image/')).slice(0, t.maxImages || 1)
+    : typeof image === 'string' && image.startsWith('data:image/')
+      ? [image]
+      : [];
+  if (inputImages.length === 0) return NextResponse.json({ error: 'image_required' }, { status: 400 });
+  if (inputImages.length > (t.maxImages || 1)) return NextResponse.json({ error: 'too_many_images' }, { status: 400 });
+  if (inputImages.join('').length > 8_000_000) return NextResponse.json({ error: 'image_too_large' }, { status: 400 });
 
   const finalPrompt = (prompt?.trim?.() || t.defaultPrompt) as string;
 
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
       endpoint: t.endpoint,
       model: t.model,
       prompt: finalPrompt,
-      image,
+      images: inputImages,
       imageField: t.imageField,
       extra: t.extra,
     });
@@ -45,7 +52,7 @@ export async function POST(req: Request) {
       templateId,
       model: t.model,
       prompt: finalPrompt,
-      inputImage: image,
+      inputImage: inputImages[0],
       status: 'processing',
       taskId: res.id,
       getUrl: res.getUrl,

@@ -45,11 +45,11 @@ export function Navbar() {
           <span className="hidden text-[15px] tracking-tight sm:inline">Atlas Media Studio</span>
         </Link>
         <nav className="flex items-center gap-1">
-          <Link href="/studio" className={navLink}>
-            {t('nav.studio')}
-          </Link>
           <Link href="/pricing" className={navLink}>
             {t('nav.pricing')}
+          </Link>
+          <Link href="/coverage" className={`hidden sm:inline-flex ${navLink}`}>
+            Coverage
           </Link>
           {session ? (
             <>

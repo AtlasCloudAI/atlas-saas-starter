@@ -5,7 +5,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { getTemplate } from '@/config/templates';
 import { useI18n } from '@/i18n/provider';
 import Link from 'next/link';
-import { Download, ImageOff, Loader2, Sparkles } from 'lucide-react';
+import { Download, ImageOff, Loader2, Mic2, Sparkles } from 'lucide-react';
 
 interface Creation {
   id: string;
@@ -19,6 +19,18 @@ interface Creation {
 function Center({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-[40vh] items-center justify-center">{children}</div>;
 }
+
+const AUDIO_TEMPLATE_IDS = new Set(['podcast-factory', 'bedtime-story', 'audio-drama', 'soundscape', 'audiobook', 'voice-agent']);
+const FILE_TEMPLATE_IDS = new Set(['image-to-3d', 'text-to-3d']);
+const VIDEO_TEMPLATE_IDS = new Set([
+  'short-drama',
+  'viral-video',
+  'dynamic-comic',
+  'virtual-influencer',
+  'talking-photo',
+  'video-edit',
+  'video-upscale',
+]);
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -71,19 +83,39 @@ export default function Dashboard() {
             <Sparkles className="h-6 w-6 text-brand-400" />
           </span>
           <p className="text-neutral-500">{t('dashboard.empty')}</p>
-          <Link href="/studio" className="btn-brand">{t('dashboard.createFirst')}</Link>
+          <Link href="/podcast" className="btn-brand">{t('dashboard.createFirst')}</Link>
         </div>
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => {
             const tpl = getTemplate(c.templateId);
-            const out = tpl?.output ?? 'image';
+            const out =
+              tpl?.output ??
+              (AUDIO_TEMPLATE_IDS.has(c.templateId)
+                ? 'audio'
+                : FILE_TEMPLATE_IDS.has(c.templateId)
+                  ? 'file'
+                  : VIDEO_TEMPLATE_IDS.has(c.templateId)
+                    ? 'video'
+                    : 'image');
             return (
               <div key={c.id} className="card overflow-hidden">
                 <div className="flex aspect-square items-center justify-center bg-neutral-50">
                   {c.status === 'completed' && c.outputs?.[0] ? (
                     out === 'video' ? (
                       <video src={c.outputs[0]} controls loop className="h-full w-full object-contain" />
+                    ) : out === 'audio' ? (
+                      <div className="w-full space-y-4 p-5">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-brand-500">
+                          <Mic2 className="h-8 w-8" />
+                        </div>
+                        <audio src={c.outputs[0]} controls className="w-full" />
+                      </div>
+                    ) : out === 'file' ? (
+                      <div className="flex flex-col items-center gap-3 text-neutral-400">
+                        <Sparkles className="h-8 w-8 text-brand-500" />
+                        <span className="text-xs">3D assets ready</span>
+                      </div>
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={c.outputs[0]} alt="" referrerPolicy="no-referrer" className="h-full w-full object-contain" />
@@ -102,7 +134,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center justify-between gap-2 p-3">
                   <span className="flex items-center gap-1.5 truncate text-xs text-neutral-500">
-                    <span>{tpl?.emoji}</span>
+                    {tpl?.emoji ? <span>{tpl.emoji}</span> : <Mic2 className="h-3.5 w-3.5 shrink-0" />}
                     <span className="truncate">{appText(c.templateId).title}</span>
                   </span>
                   {c.status === 'completed' && c.outputs?.[0] && (

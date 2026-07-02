@@ -20,8 +20,13 @@ export async function GET(req: Request) {
   if (!r.ok || !r.body) return new Response('upstream error', { status: 502 });
 
   const ct = r.headers.get('content-type') || 'application/octet-stream';
-  const ext = ct.includes('video')
+  const pathExt = new URL(url).pathname.split('.').pop()?.toLowerCase();
+  const ext = pathExt && /^[a-z0-9]{2,5}$/.test(pathExt)
+    ? pathExt
+    : ct.includes('video')
     ? 'mp4'
+    : ct.includes('audio') || ct.includes('mpeg')
+      ? 'mp3'
     : ct.includes('png')
       ? 'png'
       : ct.includes('webp')
