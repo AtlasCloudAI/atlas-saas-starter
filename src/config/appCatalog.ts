@@ -4,7 +4,7 @@ export type AppCat = 'production' | 'nocreative' | 'incomplete';
 // ✅ 可投入生产:有真实壁垒 / 多步 pipeline(3D、专用视频、真 pipeline、SKU 素材工厂)
 export const PRODUCTION_ROUTES = new Set<string>([
   '/sku-studio', '/course-studio', '/image-to-3d', '/text-to-3d', '/game-asset-3d', '/figurine-3d', '/memorial-figurine',
-  '/video-edit', '/video-upscale', '/course-video', '/podcast', '/ecommerce-suite',
+  '/video-edit', '/video-upscale', '/course-video', '/podcast', '/ecommerce-suite', '/kids-book',
 ]);
 
 // ⭐ 精品:重点打磨、可对外主推的旗舰应用
